@@ -34,10 +34,15 @@ def pub_root():
     context_type_list, context_list = zip(*context_pairs)
     return render_template(
         'index.html',
+        # 上下文
         context_list      = context_list,
         context_type_list = context_type_list,
+        # 聊天时的临时设置
         reasoner          = reasoner or None,
         memory            = memory or None,
+        # 最新版本号获取
+        latest_version    = core.get_latest_version(),
+        # 永久设置
         show_memory       = core.load_data()['config']['show_memory'],
         location          = core.load_data()['config']['location'],
         left_image        = core.load_data()['config']['left_image'],
@@ -71,7 +76,6 @@ def config_():
     core.update_config('model_base_url', request.form.get('model-base-url'))
     core.update_config('reasoner_model', request.form.get('reasoner-model'))
     core.update_config('common_model', request.form.get('common-model'))
-    1/0
     return redirect('/')
 
 @shell.route('/data')

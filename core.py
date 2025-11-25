@@ -46,6 +46,15 @@ def get_weather(location: str) -> dict[str]:
             'temperature': '暂无'
         }
 
+def get_latest_version() -> str:
+    '''
+    获取Nino的最新版本。
+    '''
+    try:
+        return '最新版本：ver ' + requests.get('https://pinpe.github.io/nino-ai-chat/latest_version').text
+    except (requests.ConnectTimeout, requests.ConnectionError):
+        return '暂时无法获取最新版本'
+
 def load_data() -> dict[str]:
     '''
     从数据库和环境变量加载数据。
