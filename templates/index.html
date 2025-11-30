@@ -3,7 +3,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=2.0, user-scalable=yes" /> 
         <title>欢迎使用Nino</title>
-        <script src="https://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
+        <script src="{{ url_for('static', filename='jquery-2.0.2.min.js') }}"></script>
     </head>
     <body>
         <div class="layout-container">
@@ -14,7 +14,8 @@
             <div class="right-content">
                 <div id="menu">
                     <h1>Nino🍥</h1>
-                    <span><a href="/data">数据中心</a> | <a href="#" id="config">设置</a> | <a href="#" id="about">关于</a></span>
+                    <!-- 导航栏添加「检查更新」按钮 -->
+                    <span><a href="/data">数据中心</a> | <a href="#" id="config">设置</a> | <a href="#" id="about">关于</a> | <a href="#" id="check-update">检查更新</a></span>
                 </div>
                 <div id="talk">
                     {% for content, content_type in context_list | zip(context_type_list) %}
@@ -25,7 +26,12 @@
                     <form action="/send" method="post" id="form" enctype="multipart/form-data">
                         <div id="user-input-from">
                             <input type="text" required maxlength="100" name="content" id="content" placeholder="发送消息...">
-                            <input type="file" name="attachment_file" id="attachment_file" accept=".txt">
+                            <input type="file" name="attachment_file" id="attachment_file" 
+                            accept=".txt,.md,.rtf,.log,.asc,.text,.csv,.tsv,.tab,.psv,.ssv,
+                                .html,.htm,.css,.js,.ts,.json,.xml,.php,.py,.java,
+                                .c,.h,.cpp,.hpp,.cs,.rb,.go,.swift,.kotlin,.scala,
+                                .perl,.pl,.sh,.bash,.bat,.cmd,.sql,.lua,.rs,.dart,
+                                .vue,.jsx,.tsx,.sass,.scss,.less,.styl">
                             <input type="submit" value="发送" id="submit" >
                         </div>
                         <input type="checkbox" {% if reasoner %} checked="on" {% endif %} name="reasoner" id="reasoner">
@@ -42,8 +48,7 @@
             <span class="modal-close">X</span>
             <div class="modal-content">
                 <h2 class="modal-title">Nino🍥</h2>
-                <p class="modal-version">ver 1.7.0</p>
-                <p class="modal-version">（{{ latest_version }}）</p>
+                <p class="modal-version">ver 1.8.0</p>
                 <div class="modal-info">
                     <p>作者：Pinpe</p>
                     <p>技术栈：Python、Flask、jQuery</p>
@@ -54,7 +59,6 @@
                 <div class="modal-desc">
                     <p>Nino是AI聊天软件，会尝试了解你，理解你，并且可以永远记住重要记忆，会根据用户输入、上下文、长期记忆库和外部环境对你返回可爱的回复，可用于聊天和日常心理调适。</p>
                     <p>Nino是开源的，跨平台的，轻量级的，Nino的所有数据均在本地，仅在需要时会把一部分数据发送给第三方API。</p>
-                    <p>Nino的EXE发行包是由lyp0746打包的，通常可以直接运行，但没有审核过，可用性和安全性问题未知。</p>
                     <p>注意：AI的回复可能会因为幻觉导致事实、观点等错误，不一定是完全正确的，请有基本的判断能力，Nino及其作者不为此付出任何责任。</p>
                 </div>
             </div>
@@ -83,14 +87,35 @@
             </div>
         </div>
 
+        <!-- 新增：检查更新弹窗 -->
+        <div class="update-modal">
+            <span class="update-modal-close">X</span>
+            <h1>检查更新</h1>
+            <div class="modal-desc"><p>通过Nino的在线服务器，检查最新版本状态。</p></div>
+            <div class="update-modal-content">
+                
+                <div class="update-info">
+                    <div class="update-row">
+                        <span class="update-label">当前版本</span>
+                        <span class="update-value">1.8.0</span>
+                    </div>
+                    <div class="update-row">
+                        <span class="update-label">最新版本</span>
+                        <span class="update-value" id="latest-version">{{ latest_version }}</span>
+                    </div>
+                </div>
+                <a href="https://github.com/Pinpe/nino-ai-chat/releases/tag/{{ latest_version }}" target="_blank" class="update-button" id="update-button">查看最新版本</a>
+            </div>
+        </div>
+
         <script>
             $(function(){
                 first_use = ({{ first_use }});
                 
-                // 初始状态隐藏
+                // 初始状态隐藏（添加update-modal）
                 $('#submit_show_user').hide();
                 $('#submit_show_shell').hide();
-                $('.modal-mask, .modal, .config-modal').hide();
+                $('.modal-mask, .modal, .config-modal, .update-modal').hide();
 
                 if (first_use == true) {
                     // 如果是首次使用，优雅地显示设置弹窗
@@ -105,25 +130,42 @@
                 $('#submit_show_shell').show()
             })
 
-            // 关于按钮点击事件 - 添加动画效果
+            // 关于按钮点击事件
             $('#about').click(function(e){
                 e.preventDefault();
-                $('.modal-mask').fadeIn(5); // 背景渐显
-                $('.modal').show(); // 卡片弹出 (CSS Animation)
+                $('.modal-mask').fadeIn(5);
+                $('.modal').show();
             })
 
-            // 设置按钮点击事件 - 添加动画效果
+            // 设置按钮点击事件
             $('#config').click(function(e){
                 e.preventDefault();
                 $('.modal-mask').fadeIn(5);
                 $('.config-modal').show();
             })
 
-            // 关闭弹窗 - 添加动画效果
-            $('.modal-close, .config-modal-close').click(function(){
-                $('.modal-mask').fadeOut(0); // 背景渐隐
-                // 卡片渐隐 (jQuery的fadeOut会处理opacity，覆盖CSS动画结束状态)
-                $('.config-modal, .modal').fadeOut(0); 
+            // 新增：检查更新按钮点击事件
+            $('#check-update').click(function(e){
+                e.preventDefault();
+                $('.modal-mask').fadeIn(5);
+                $('.update-modal').show();
+                
+                // 动态处理按钮状态：无法获取版本时禁用按钮
+                const latestVersion = $('#latest-version').text().trim();
+                const updateButton = $('#update-button');
+                if (latestVersion === 'None') {
+                    updateButton.hide()
+                    $('#latest-version').text('当前无法获取最新版本，稍后再试试')
+                } else {
+                    updateButton.attr('disabled', false);
+                    updateButton.attr('href', `https://github.com/Pinpe/nino-ai-chat/releases/tag/${latestVersion}`);
+                }
+            })
+
+            // 关闭弹窗事件（添加update-modal-close）
+            $('.modal-close, .config-modal-close, .update-modal-close').click(function(){
+                $('.modal-mask').fadeOut(0);
+                $('.config-modal, .modal, .update-modal').fadeOut(0);
             })
         </script>
 
@@ -325,7 +367,7 @@
                 width: 114px;
             }
 
-            /* 新增：弹窗动画定义 */
+            /* 弹窗基础样式 */
             @keyframes modal-in {
                 0% {
                     opacity: 0;
@@ -337,7 +379,6 @@
                 }
             }
 
-            /* 新增：弹窗样式 */
             .modal-mask {
                 position: fixed;
                 top: 0;
@@ -346,37 +387,96 @@
                 height: 100vh;
                 background-color: rgba(0, 0, 0, 0.3);
                 z-index: 1000;
-                backdrop-filter: blur(5px); /* 稍微调小了一点模糊，提升性能 */
-                transition: opacity 0.3s ease; /* 添加过渡 */
+                backdrop-filter: blur(5px);
+                transition: opacity 0.3s ease;
             }
 
-            .modal, .config-modal {
+            .modal, .config-modal, .update-modal {
                 position: fixed;
                 top: 50%;
                 left: 50%;
-                /* transform 由动画控制，初始状态在 keyframes 0% 中定义 */
-                transform: translate(-50%, -50%); 
+                transform: translate(-50%, -50%);
                 background-color: #fff9f0;
                 border-radius: 20px;
                 padding: 30px;
                 width: 100%;
-                max-width: 850px;
                 z-index: 1001;
-                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2); /* 阴影加深一点更有层次感 */
-                
-                /* 应用动画：当 display: block 时触发 */
+                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
                 animation: modal-in 0.2s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+            }
+
+            .modal {
+                max-width: 850px;
             }
 
             .config-modal{
                 max-width: 550px;
             }
 
-            .modal-desc p {
-                margin-bottom: 8px;
+            /* 新增：检查更新弹窗样式 */
+            .update-modal {
+                max-width: 500px;
             }
 
-            .modal-close, .config-modal-close {
+            .update-info {
+                margin: 30px 0;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .update-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 12px 25px;
+                background-color: #ffefd8;
+                border-radius: 15px;
+            }
+
+            .update-label {
+                color: #795548;
+                font-size: 16px;
+                font-weight: 500;
+            }
+
+            .update-value {
+                color: #5D4037;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .update-button {
+                display: inline-block;
+                background-color: #FFE0B2;
+                border: none;
+                padding: 12px 35px;
+                border-radius: 25px;
+                font-size: 15px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                color: #5D4037;
+                text-decoration: none;
+                margin-top: 10px;
+            }
+
+            .update-button:hover {
+                transform: translateY(-2px);
+            }
+
+            .update-button:active {
+                transform: translateY(0);
+            }
+
+            .update-button:disabled {
+                background-color: #D7CCC8;
+                color: #79554880;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            /* 弹窗关闭按钮通用样式 */
+            .modal-close, .config-modal-close, .update-modal-close {
                 position: absolute;
                 top: 15px;
                 right: 20px;
@@ -394,15 +494,11 @@
                 line-height: 1;
             }
 
-            .modal-close:hover {
+            .modal-close:hover, .config-modal-close:hover, .update-modal-close:hover {
                 background-color: #ede5d8;
             }
 
-            .config-modal-close:hover {
-                background-color: #ede5d8;
-            }
-
-            .modal-content {
+            .modal-content, .update-modal-content {
                 text-align: center;
                 margin-top: 10px;
             }
@@ -458,13 +554,18 @@
                 #menu {
                     padding: 25px 20px;
                 }
-                /* 弹窗响应式调整 */
-                .modal {
+                .modal, .config-modal, .update-modal {
                     padding: 25px 20px;
                     max-width: 95%;
                 }
                 .modal-title {
                     font-size: 28px;
+                }
+                .update-row {
+                    padding: 10px 15px;
+                }
+                .update-button {
+                    padding: 10px 25px;
                 }
             }
         </style>
