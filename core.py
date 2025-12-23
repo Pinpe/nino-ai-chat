@@ -1,6 +1,7 @@
 from openai import OpenAI
 import requests
 import textwrap
+import base64
 import data
 import time
 
@@ -28,6 +29,38 @@ def get_ai(prompt: str, reasoner: bool) -> str:
         return response.choices[0].message.content
     except Exception:
         return '[自动回复] 当前我不在哦qwq...有事请留言'
+
+
+def get_vision_ai(img_base, prompt) -> str:
+    '''
+    将提示词和图片发给图片识别AI，是获得图片识别能力的直接接口。
+
+    :param img_base: 图片的base64编码
+    :param prompt: 给AI的提示词。
+    '''
+    client = OpenAI(
+        api_key  = data.load_data()['env']['vision_api_key'],
+        base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    completion = client.chat.completions.create(
+        model="qwen3-vl-8b-instruct",
+        messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f'data:image/png;base64,{img_base}'
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }]
+    )   
+    return completion.choices[0].message.content
 
 
 def get_weather(location: str) -> dict[str]:
@@ -59,7 +92,14 @@ def get_latest_version() -> str | None:
         return None
 
 
-def create_prompt(user_input: str, context_list: list[str], memory_list: list[str], location: str, attachment: str) -> str:
+def create_prompt(
+        user_input:    str,
+        context_list:  list[str],
+        memory_list:   list[str],
+        location:      str,
+        attachment:    str,
+        vision_output: str
+    ) -> str:
     '''
     根据各种数据，整合和创建给AI的原始提示词。
     
@@ -68,6 +108,7 @@ def create_prompt(user_input: str, context_list: list[str], memory_list: list[st
     :param memory_list: 长期记忆列表。
     :param location: 城市名称。
     :param attachment: 给AI的附件（仅支持字符串）
+    :param vision_output: 图像识别AI的输出
     '''
     tmp_context_list = []
     tmp_memory_list = []
@@ -147,6 +188,9 @@ def create_prompt(user_input: str, context_list: list[str], memory_list: list[st
         用户发送的附件：
         {'用户没有发送附件' if attachment=='' else attachment}
 
+        用户发送的图片：
+        {'用户没有发送图片' if vision_output=='' else vision_output}
+
         长期记忆参考：
         {tmp_memory_list}
 
@@ -157,35 +201,63 @@ def create_prompt(user_input: str, context_list: list[str], memory_list: list[st
     ''')
     return prompt
 
+def create_vision_prompt():
+    '''
+    创建给图像识别AI的提示词。
+    '''
+    return textwrap.dedent(f'''
+        请严格遵循以下步骤和格式，对提供的图片进行详细描述，不要输出任何多余内容，描述成一段落，禁止使用任何小标题分割，100字以内：
 
-def send(user_input: str, reasoner: bool, memory: bool, double_output: bool, location: str) -> None:
+        第一步：整体内容概括
+        用一句话概括图片的核心主题或场景（例如：这是一张包含产品说明的电商海报）。
+
+        第二步：详细视觉元素描述
+        主体与场景： 描述图片中的主要人物、物体、背景环境、布局和颜色基调。
+        关键文本信息（逐项列出）：
+        位置与形式： 明确指出文本出现在图片的哪个区域（如顶部标题、底部小字、产品标签等），以及其形式（印刷体、手写体、艺术字、屏幕截图等）。
+        内容转录： 将图片中的所有文字一字不差、原样转录（包括拼写错误或特殊符号）。即使文字不清晰，也请尽力辨识并说明。
+        字体与风格： 描述文字的视觉风格（如加粗、斜体、字体大小、颜色）及其可能传达的情绪或重点。
+
+        第三步：文本与视觉的关联分析
+        解释图片中的文字如何与视觉元素相互作用。例如：文本是否为视觉元素的标签、说明、标题或补充信息？它是否在引导观看者的注意力？
+
+        第四步：综合摘要与目的推断
+        基于以上所有信息，总结这张图片可能的目的、受众和传达的核心信息（例如：这是一张宣传新科技产品的广告，旨在通过突出性能参数吸引消费者）。
+    ''')
+
+
+def send(user_input: str, reasoner: bool, memory: bool, location: str) -> None:
     '''
     这里是集大成接口，将用户输入整合到原始字符串再发送给AI，同时更新数据库数据，还兼有数据格式化和提取的功能。
     
     :param user_input:    用户输入的消息内容。
     :param reasoner:      是否启用思考模型。
     :param memory:        是否启用长期记忆，启用后会检测和提取AI回复的部分内容，以实现AI也能自由添加长期记忆的功能。
-    :param double_output: 是否允许AI分割回复。
     :param location:      城市名称。
     '''
     ai_memory = '这条回复没有添加长期记忆'
     ai_double_output = '这条回复没有使用分割回复'
     data.add_data('context', f'{time.ctime()}//{time.strftime('%d', time.localtime(time.time()))}//用户//{user_input}')
+    if open('temp/attachment_img.png', mode='rb').read() != b'':
+        vision_output = get_vision_ai(base64.b64encode(open('temp/attachment_img.png', mode='rb').read()).decode(), create_vision_prompt())
+    else:
+        vision_output = ''
     prompt = create_prompt(
-        user_input   = user_input,
-        context_list = data.load_data()['context'],
-        memory_list  = data.load_data()['memory'],
-        location     = location,
-        attachment   = open('temp/attachment_file.txt',  encoding='UTF-8').read()
+        user_input    = user_input,
+        context_list  = data.load_data()['context'],
+        memory_list   = data.load_data()['memory'],
+        location      = location,
+        attachment    = open('temp/attachment_file.txt',encoding='UTF-8').read(),
+        vision_output = vision_output
     )
     ai_output = get_ai(prompt, reasoner)
     open('temp/attachment_file.txt', mode='w', encoding='UTF-8').write('')
+    open('temp/attachment_img.png', mode='wb').write(b'')
     if (('[分割回复]' in ai_output) and ('[添加长期记忆]' in ai_output)) == False:
-        if double_output == True:
-            if '[分割回复]' in ai_output:
-                tmp_output = ai_output.split('[分割回复]')
-                ai_output = tmp_output[0]
-                ai_double_output = tmp_output[1]
+        if '[分割回复]' in ai_output:
+            tmp_output = ai_output.split('[分割回复]')
+            ai_output = tmp_output[0]
+            ai_double_output = tmp_output[1]
         if memory == True:
             if '[添加长期记忆]' in ai_output:
                 tmp_memory = ai_output.split('[添加长期记忆]')

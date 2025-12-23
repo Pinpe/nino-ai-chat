@@ -45,13 +45,15 @@ pip install flask openai requests
 ```json
 {
     "ai_api_key": "",
+    "vision_api_key": "",
     "weather_api_key": ""
 }
 ```
 
 #### 3. 配置API密钥
-Nino需要两个API密钥才能正常工作：
+Nino需要三个API密钥才能正常工作：
 - **AI API密钥**：使用Deepseek API，需前往[Deepseek官网](https://www.deepseek.com/)注册获取
+- **图片识别API密钥**：使用阿里云百炼API，需前往[阿里云百炼官网](https://bailian.console.aliyun.com/)注册获取
 - **天气API密钥**：使用心知天气API，需前往[心知天气官网](https://www.seniverse.com/)注册获取
 
 将获取到的密钥填入`env.json`对应的字段中。
@@ -64,6 +66,9 @@ python shell.py
 服务启动后，浏览器访问 `http://127.0.0.1:5000` 即可使用Nino聊天～
 
 ### 二、Docker部署
+
+> Docker由雪球Bqiu维护，可能无法跟进最新版本。
+
 #### 1. 环境要求
  - Docker 19.XX+
  - Docker Compose 1.XX+

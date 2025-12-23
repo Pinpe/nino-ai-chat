@@ -82,7 +82,7 @@ input()
 if whl_err == True:
     os.system('pip install flask openai requests typer')
 if env_err == True:
-    open('env.json', mode='w').write('{\n    "ai_api_key": "",\n    "weather_api_key": ""\n}')
+    open('env.json', mode='w').write('{\n    "ai_api_key": "",\n    "vision_api_key": "",\n"weather_api_key": ""\n}')
 print(f'{green}修复完成！{rst}可尝试重新运行此脚本以确认是否修复成功。')
 if env_err == True:
     print(f'{yellow}注意：{rst}请在env.json填写api密钥，修复生成的是空的。')

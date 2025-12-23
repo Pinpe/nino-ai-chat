@@ -59,17 +59,16 @@
                     return "#" + toHex(r) + toHex(g) + toHex(b);
                 }
 
-                // 调高了饱和度参数 (第二个参数)
                 var cssVars = {
-                    '--c-bg': hslToHex(h, 0.6, 0.97),         // 背景：0.4 -> 0.6
-                    '--c-card': hslToHex(h, 0.75, 0.92),      // 卡片：0.45 -> 0.75
-                    '--c-hover': hslToHex(h, 0.5, 0.94),      // 悬停：0.3 -> 0.5
-                    '--c-accent': hslToHex(h, 0.95, 0.85),    // 按钮/高亮：0.6 -> 0.95 (更鲜艳)
-                    '--c-text-sub': hslToHex(h, 0.5, 0.40),   // 次要文字：0.25 -> 0.5
-                    '--c-text': hslToHex(h, 0.6, 0.29),       // 主要文字：0.3 -> 0.6
-                    '--c-placeholder': hslToHex(h, 0.3, 0.82),// 占位符：0.15 -> 0.3
-                    '--c-focus': hslToHex(h, 1.0, 0.50),      // 焦点：保持高饱和
-                    '--c-shadow': hslToHex(h, 0.3, 0.80)      // 阴影色：0.1 -> 0.3
+                    '--c-bg': hslToHex(h, 0.6, 0.97),
+                    '--c-card': hslToHex(h, 0.75, 0.92),
+                    '--c-hover': hslToHex(h, 0.5, 0.94),
+                    '--c-accent': hslToHex(h, 0.95, 0.85),
+                    '--c-text-sub': hslToHex(h, 0.5, 0.40),
+                    '--c-text': hslToHex(h, 0.6, 0.29),
+                    '--c-placeholder': hslToHex(h, 0.3, 0.82),
+                    '--c-focus': hslToHex(h, 1.0, 0.50),
+                    '--c-shadow': hslToHex(h, 0.3, 0.80)
                 };
 
                 var style = document.createElement('style');
@@ -98,25 +97,23 @@
                     {% for content, content_type in context_list | zip(context_type_list) %}
                         <span class="message {{ content_type }}">{{ content }}</span>
                     {% endfor %}
-                    <span class="message user" id="submit_show_user"></span>
-                    <span class="message shell" id="submit_show_shell">等待对方回复...</span>
+                    
                     <form action="/send" method="post" id="form" enctype="multipart/form-data">
                         <div id="user-input-from">
                             <input type="text" required maxlength="186" name="content" id="content" placeholder="发送消息...">
                             <input type="file" name="attachment_file" id="attachment_file" 
-                            accept=".txt,.md,.rtf,.log,.asc,.text,.csv,.tsv,.tab,.psv,.ssv,
-                                .html,.htm,.css,.js,.ts,.json,.xml,.php,.py,.java,
-                                .c,.h,.cpp,.hpp,.cs,.rb,.go,.swift,.kotlin,.scala,
-                                .perl,.pl,.sh,.bash,.bat,.cmd,.sql,.lua,.rs,.dart,
-                                .vue,.jsx,.tsx,.sass,.scss,.less,.styl">
-                            <input type="submit" value="发送" id="submit" >
+                                accept=".txt,.md,.rtf,.log,.asc,.text,.csv,.tsv,.tab,.psv,.ssv,
+                                    .html,.htm,.css,.js,.ts,.json,.xml,.php,.py,.java,
+                                    .c,.h,.cpp,.hpp,.cs,.rb,.go,.swift,.kotlin,.scala,
+                                    .perl,.pl,.sh,.bash,.bat,.cmd,.sql,.lua,.rs,.dart,
+                                    .vue,.jsx,.tsx,.sass,.scss,.less,.styl,
+                                    .jpg,.jpeg,.png,.bmp,.webp,.tif,.tiff">
+                            <input type="submit" value="发送" id="send-btn" >
                         </div>
                         <input type="checkbox" {% if reasoner %} checked="on" {% endif %} name="reasoner" id="reasoner">
                         <label for="reasoner" id="reasoner-text">使用思考模型</label>
                         <input type="checkbox" {% if memory %} checked="on" {% endif %} name="memory" id="memory">
                         <label for="memory" id="memory-text">允许写入长期记忆</label>
-                        <input type="checkbox" {% if double_output %} checked="on" {% endif %} name="double_output" id="double_output">
-                        <label for="double_output" id="double_output-text">允许分割回复</label>
                     </form>
                 </div>
             </div>
@@ -127,7 +124,7 @@
             <span class="modal-close">X</span>
             <div class="modal-content">
                 <h2 class="modal-title">Nino🍥</h2>
-                <p class="modal-version">ver 2.2.0</p>
+                <p class="modal-version">ver 2.3.0</p>
                 <div class="modal-info">
                     <p>作者：Pinpe</p>
                     <p>技术栈：Python、Flask、jQuery</p>
@@ -179,7 +176,7 @@
                 <div class="update-info">
                     <div class="update-row">
                         <span class="update-label">当前版本</span>
-                        <span class="update-value">2.2.0</span>
+                        <span class="update-value">2.3.0</span>
                     </div>
                     <div class="update-row">
                         <span class="update-label">最新版本</span>
@@ -193,46 +190,88 @@
         <script>
             $(function(){
                 first_use = ({{ first_use }});
-                
-                // 初始状态隐藏（添加update-modal）
-                $('#submit_show_user').hide();
-                $('#submit_show_shell').hide();
                 $('.modal-mask, .modal, .config-modal, .update-modal').hide();
 
                 if (first_use == true) {
-                    // 如果是首次使用，优雅地显示设置弹窗
                     $('.modal-mask').fadeIn(5);
-                    $('.config-modal').show(); // CSS动画处理弹出效果
+                    $('.config-modal').show(); 
                 }
             })
 
-            $('#form').submit(function(){
-                $('#submit').attr('disabled', 'true')
-                $('#submit_show_user').text($('#content').val()).show()
-                $('#submit_show_shell').show()
-            })
+            let undoTimer = null;
+            let countdownInterval = null;
+            const UNDO_DURATION = 3;
 
-            // 关于按钮点击事件
+            $('#form').submit(function(e){
+                e.preventDefault(); 
+                
+                const $input = $('#content');
+                const messageContent = $input.val();
+                if(!messageContent) return;
+
+                $input.attr('placeholder', '发送中...');
+                $('#send-btn').attr('disabled', true);
+
+                const tempUserHtml = `
+                    <div id="temp-msg-wrapper" class="temp-msg-wrapper">
+                        <span class="undo-btn" id="undo-trigger">撤回</span>
+                        <span class="message user">${messageContent}</span>
+                    </div>
+                `;
+                const tempShellHtml = `<span class="message shell" id="temp-shell">等待对方回复...</span>`;
+
+                $('#form').before(tempUserHtml);
+                $('#form').before(tempShellHtml);
+
+                const rightContent = document.querySelector('.right-content');
+                rightContent.scrollTop = rightContent.scrollHeight;
+
+                let timeLeft = UNDO_DURATION;
+                
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    $('#undo-trigger').text(`撤回`);
+                }, 1000);
+
+                undoTimer = setTimeout(() => {
+                    clearInterval(countdownInterval);
+                    $('#undo-trigger').fadeOut(200, function(){ $(this).remove(); });
+                    $input.val(messageContent); 
+                    document.getElementById('form').submit();
+                }, UNDO_DURATION * 1000);
+
+                $('#undo-trigger').click(function(){
+                    clearTimeout(undoTimer);
+                    clearInterval(countdownInterval);
+                    undoTimer = null;
+
+                    $('#temp-msg-wrapper').remove();
+                    $('#temp-shell').remove();
+
+                    $input.val(messageContent);
+                    $input.attr('placeholder', '发送消息...');
+                    $input.focus();
+                    $('#send-btn').attr('disabled', false);
+                });
+            });
+
             $('#about').click(function(e){
                 e.preventDefault();
                 $('.modal-mask').fadeIn(5);
                 $('.modal').show();
             })
 
-            // 设置按钮点击事件
             $('#config').click(function(e){
                 e.preventDefault();
                 $('.modal-mask').fadeIn(5);
                 $('.config-modal').show();
             })
 
-            // 新增：检查更新按钮点击事件
             $('#check-update').click(function(e){
                 e.preventDefault();
                 $('.modal-mask').fadeIn(5);
                 $('.update-modal').show();
                 
-                // 动态处理按钮状态：无法获取版本时禁用按钮
                 const latestVersion = $('#latest-version').text().trim();
                 const updateButton = $('#update-button');
                 if (latestVersion === 'None') {
@@ -244,7 +283,6 @@
                 }
             })
 
-            // 关闭弹窗事件（添加update-modal-close）
             $('.modal-close, .config-modal-close, .update-modal-close').click(function(){
                 $('.modal-mask').fadeOut(0);
                 $('.config-modal, .modal, .update-modal').fadeOut(0);
@@ -279,7 +317,7 @@
             }
 
             #menu a:hover{
-                background-color: var(--c-hover);
+                background-color: #e2e2e2;
             }
 
             .layout-container {
@@ -287,7 +325,6 @@
                 min-height: 100vh;
             }
 
-            /* 左侧图片绝对固定 */
             .left-image {
                 position: fixed;
                 top: 0;
@@ -306,7 +343,6 @@
                 display: block;
             }
 
-            /* 右侧内容区避开左侧固定区域 */
             .right-content {
                 width: 66.666%;
                 min-height: 100vh;
@@ -314,10 +350,6 @@
                 max-width: 800px;
                 margin-left: 40%;
                 overflow-y: auto;
-            }
-
-            title {
-                display: none;
             }
 
             #talk {
@@ -339,6 +371,39 @@
             .message.user {
                 background-color: var(--c-accent);
                 margin-left: auto;
+            }
+
+            .temp-msg-wrapper {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                width: 100%;
+                margin-top: 5px;
+            }
+            .temp-msg-wrapper .message.user {
+                margin-left: 0; 
+            }
+
+            /* --- 优化后的撤回按钮样式 --- */
+            .undo-btn {
+                font-size: 14px;
+                color: var(--c-text-sub);
+                cursor: pointer;
+                margin-right: 10px;
+                padding: 3.5px 10px;
+                user-select: none;
+                border: none;
+                background-color: #ffe1e1;
+                border-radius: 99px;
+                transition: all 0.15s ease;
+            }
+
+            .undo-btn:hover{
+                transform: translateY(-2px);
+            }
+
+            .undo-btn:active{
+                transform: translateY(0px);
             }
 
             .message.ai {
@@ -430,7 +495,7 @@
                 border-color: var(--c-focus);
             }
 
-            #submit, input::file-selector-button {
+            #send-btn, input::file-selector-button {
                 background-color: var(--c-accent);
                 border: none;
                 padding: 12px 25px;
@@ -442,19 +507,36 @@
                 color: var(--c-text);
             }
 
-            #submit:hover {
+            #send-btn:hover {
                 transform: translateY(-2px);
             }
 
-            #submit:active {
+            #send-btn:active {
                 transform: translateY(0);
+            }
+            
+            #send-btn:disabled {
+                background-color: var(--c-placeholder);
+                cursor: default;
+                transform: none;
+            }
+
+            #submit {
+                background-color: var(--c-accent);
+                border: none;
+                padding: 12px 25px;
+                border-radius: 25px;
+                font-size: 15px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.1s ease;
+                color: var(--c-text);
             }
 
             #attachment_file{
                 width: 114px;
             }
 
-            /* 弹窗基础样式 */
             @keyframes modal-in {
                 0% {
                     opacity: 0;
@@ -492,15 +574,37 @@
                 animation: modal-in 0.2s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
             }
 
-            .modal {
-                max-width: 850px;
+            .modal { max-width: 850px; }
+            .config-modal { max-width: 550px; }
+            .update-modal { max-width: 500px; }
+
+            ::selection {
+                color: #fff;
+                background: var(--c-focus);
             }
 
-            .config-modal{
-                max-width: 550px;
+            .modal-close, .config-modal-close, .update-modal-close {
+                position: absolute;
+                top: 15px;
+                right: 20px;
+                font-size: 18px;
+                color: var(--c-text);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background-color: var(--c-card);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+            }
+            .modal-close:hover, .config-modal-close:hover, .update-modal-close:hover {
+                background-color: var(--c-accent);
             }
 
-            /* 新增：检查更新弹窗样式 */
+                        /* 新增：检查更新弹窗样式 */
             .update-modal {
                 max-width: 500px;
             }
@@ -562,30 +666,7 @@
                 transform: none;
             }
 
-            /* 弹窗关闭按钮通用样式 */
-            .modal-close, .config-modal-close, .update-modal-close {
-                position: absolute;
-                top: 15px;
-                right: 20px;
-                font-size: 18px;
-                color: var(--c-text);
-                cursor: pointer;
-                transition: all 0.2s ease;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                background-color: var(--c-card);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                line-height: 1;
-            }
-
-            .modal-close:hover, .config-modal-close:hover, .update-modal-close:hover {
-                background-color: var(--c-accent);
-            }
-
-            .modal-content, .update-modal-content {
+                        .modal-content, .update-modal-content {
                 text-align: center;
                 margin-top: 10px;
             }
@@ -624,36 +705,11 @@
                 line-height: 1.8;
                 text-align: left;
             }
-
-            /* 响应式调整 */
             @media (max-width: 768px) {
-                .left-image {
-                    position: relative;
-                    width: 100%;
-                    height: 30vh;
-                }
-                .right-content {
-                    width: 100%;
-                    min-height: 70vh;
-                    margin-left: 0;
-                    padding: 20px 15px;
-                }
-                #menu {
-                    padding: 25px 20px;
-                }
-                .modal, .config-modal, .update-modal {
-                    padding: 25px 20px;
-                    max-width: 95%;
-                }
-                .modal-title {
-                    font-size: 28px;
-                }
-                .update-row {
-                    padding: 10px 15px;
-                }
-                .update-button {
-                    padding: 10px 25px;
-                }
+                .left-image { width: 100%; height: 30vh; position: relative; }
+                .right-content { width: 100%; min-height: 70vh; margin-left: 0; padding: 20px 15px; }
+                #menu { padding: 25px 20px; }
+                .modal, .config-modal, .update-modal { padding: 25px 20px; max-width: 95%; }
             }
         </style>
     </body>

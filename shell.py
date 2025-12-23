@@ -12,7 +12,6 @@ shell.jinja_env.filters['zip'] = zip
 class state:
     reasoner      = True
     memory        = True
-    double_output = True
     login_done    = False
 
 
@@ -69,7 +68,6 @@ def pub_root():
         # 聊天时的临时设置
         reasoner          = state.reasoner or None,
         memory            = state.memory or None,
-        double_output     = state.double_output or None,
         # 最新版本号获取
         latest_version    = core.get_latest_version(),
         # 永久设置
@@ -91,12 +89,16 @@ def send():
     state.memory = False if request.form.get('memory') is None else True
     state.double_output = False if request.form.get('double_output') is None else True
     file = request.files['attachment_file']
-    file.save('temp/attachment_file.txt')
+    is_img = False
+    for i in ['.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tif', 'tiff']:
+        if i in file.filename:
+            file.save('temp/attachment_img.png')
+            is_img = True
+    file.save('temp/attachment_file.txt') if is_img==False else None
     core.send(
         user_input    = request.form.get('content'),
         reasoner      = state.reasoner,
         memory        = state.memory,
-        double_output = state.double_output,
         location      = data.load_data()['config']['location']
     )
     return redirect('/#memory-text')

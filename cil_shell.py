@@ -8,7 +8,6 @@ def main(
         user_input    : Annotated[str, typer.Argument(help='给AI输入的消息')],
         reasoner      : Annotated[bool, typer.Option(help='是否启用思考模型')]    = True,
         memory        : Annotated[bool, typer.Option(help='是否允许写入长期记忆')] = True,
-        double_output : Annotated[bool, typer.Option(help='是否允许分割回复')]    = True
     ):
     '''
     这是Nino的命令行Shell，可以用于二开参考以及没有GUI的环境，但仅提供最简功能。
@@ -17,7 +16,6 @@ def main(
         user_input    = user_input,
         reasoner      = reasoner,
         memory        = memory,
-        double_output = double_output,
         location      = data.load_data()['config']['location']
     )
     port = str(data.load_data()['context'][-1]).split('//')

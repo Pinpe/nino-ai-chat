@@ -394,6 +394,11 @@
                 transform: translateY(0);
             }
 
+            ::selection {
+                color: #fff;
+                background: var(--c-focus);
+            }
+
             /* 响应式样式也统一调整 */
             @media (max-width: 768px) {
                 #export_data, #remove-context, .import-btn {
