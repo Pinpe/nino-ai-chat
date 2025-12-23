@@ -1,0 +1,18 @@
+version: '3.8'  # Docker Compose 文件格式版本
+
+services:
+  nino:
+    image: snowball181/nino-ai-chat:latest  # 使用 Docker Hub 上的镜像（建议替换为具体版本号）
+    container_name: nino-ai-chat  # 容器名称
+    ports:
+      - "5000:5000"  # 端口映射 [主机端口:容器端口]
+    volumes:
+      - ./env.json:/app/env.json:ro  # 只读方式挂载配置文件
+      - nino-data:/app/data  # 持久化数据卷
+    restart: unless-stopped  # 异常退出时自动重启
+    environment:  # 环境变量
+      # - ai_api_key=your_ai_api_key_here
+      # - weather_api_key=your_weather_api_key_here
+
+    # networks:  # 如需自定义网络可取消注释
+    #   - nino-network

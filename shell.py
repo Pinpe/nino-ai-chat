@@ -3,7 +3,88 @@ import requests
 import data
 import core
 import time
+import os
+import json
 
+
+# 启动时检查环境变量并更新 env.json
+print("=" * 60)
+print("Nino AI 启动中...")
+print("=" * 60)
+
+# 检查环境变量
+ai_api_key_from_env = os.environ.get('ai_api_key')
+weather_api_key_from_env = os.environ.get('weather_api_key')
+
+if ai_api_key_from_env or weather_api_key_from_env:
+    print("\n📋 检测到环境变量配置：")
+    if ai_api_key_from_env:
+        print(f"  - ai_api_key: {ai_api_key_from_env[:8]}...{ai_api_key_from_env[-4:]}")
+    else:
+        print("  - ai_api_key: 未设置")
+    
+    if weather_api_key_from_env:
+        print(f"  - weather_api_key: {weather_api_key_from_env[:8]}...{weather_api_key_from_env[-4:]}")
+    else:
+        print("  - weather_api_key: 未设置")
+    
+    try:
+        print("\n💾 正在读取 env.json 文件...")
+        # 读取现有的 env.json
+        with open('env.json', 'r', encoding='UTF-8') as f:
+            env_config = json.load(f)
+        print("✅ 成功读取 env.json")
+        print(f"  - 原 AI API Key: {env_config.get('ai_api_key', '空')[:8]}...{env_config.get('ai_api_key', '空')[-4:] if len(env_config.get('ai_api_key', '')) > 12 else ''}")
+        print(f"  - 原 Weather API Key: {env_config.get('weather_api_key', '空')[:8]}...{env_config.get('weather_api_key', '空')[-4:] if len(env_config.get('weather_api_key', '')) > 12 else ''}")
+        
+        # 更新环境变量
+        updated = False
+        if ai_api_key_from_env:
+            old_value = env_config.get('ai_api_key', '')
+            env_config['ai_api_key'] = ai_api_key_from_env
+            if old_value != ai_api_key_from_env:
+                updated = True
+                print("\n🔄 更新 AI_API_KEY")
+        
+        if weather_api_key_from_env:
+            old_value = env_config.get('weather_api_key', '')
+            env_config['weather_api_key'] = weather_api_key_from_env
+            if old_value != weather_api_key_from_env:
+                updated = True
+                print("🔄 更新 WEATHER_API_KEY")
+        
+        if updated:
+            # 写回 env.json
+            print("\n💾 正在写入 env.json 文件...")
+            with open('env.json', 'w', encoding='UTF-8') as f:
+                json.dump(env_config, f, ensure_ascii=False, indent=4)
+            print("✅ 成功更新 env.json 文件")
+            print(f"  - 新 AI API Key: {env_config['ai_api_key'][:8]}...{env_config['ai_api_key'][-4:]}")
+            print(f"  - 新 Weather API Key: {env_config['weather_api_key'][:8]}...{env_config['weather_api_key'][-4:]}")
+        else:
+            print("\nℹ️  环境变量与配置文件相同，无需更新")
+            
+    except FileNotFoundError:
+        print("\n⚠️  未找到 env.json 文件，正在创建...")
+        env_config = {}
+        if ai_api_key_from_env:
+            env_config['ai_api_key'] = ai_api_key_from_env
+        if weather_api_key_from_env:
+            env_config['weather_api_key'] = weather_api_key_from_env
+        
+        with open('env.json', 'w', encoding='UTF-8') as f:
+            json.dump(env_config, f, ensure_ascii=False, indent=4)
+        print("✅ 已创建 env.json 文件")
+        
+    except Exception as e:
+        print(f"\n❌ 更新 env.json 失败: {e}")
+        print(f"错误类型: {type(e).__name__}")
+else:
+    print("\nℹ️  未检测到环境变量配置，使用 env.json 文件中的配置")
+
+print("\n" + "=" * 60)
+print("正在启动 Flask 应用...")
+print("=" * 60 + "\n")
 
 shell                          = Flask(__name__)
 shell.jinja_env.filters['zip'] = zip
