@@ -1,4 +1,5 @@
 from flask import *
+import threading
 import requests
 import data
 import core
@@ -10,9 +11,10 @@ shell.jinja_env.filters['zip'] = zip
 
 
 class state:
-    reasoner      = True
-    memory        = True
-    login_done    = False
+    reasoner       = True
+    memory         = True
+    login_done     = False
+    latest_version = None
 
 
 def alert(text, redirect):
@@ -22,6 +24,12 @@ def alert(text, redirect):
             window.location.href = '{redirect}'
         </script>
     '''
+
+
+def get_latest_version():
+    while state.latest_version == None:
+        state.latest_version = core.get_latest_version()
+        time.sleep(5)
 
 
 @shell.route('/login')
@@ -68,8 +76,9 @@ def pub_root():
         # 聊天时的临时设置
         reasoner          = state.reasoner or None,
         memory            = state.memory or None,
-        # 最新版本号获取
-        latest_version    = core.get_latest_version(),
+        # 一些版本号获取
+        latest_version    = state.latest_version,
+        version           = core.get_version(),
         # 永久设置
         show_memory       = data.load_data()['config']['show_memory'],
         location          = data.load_data()['config']['location'],
@@ -87,13 +96,13 @@ def pub_root():
 def send():
     state.reasoner = False if request.form.get('reasoner') is None else True
     state.memory = False if request.form.get('memory') is None else True
-    state.double_output = False if request.form.get('double_output') is None else True
     file = request.files['attachment_file']
     is_img = False
-    for i in ['.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tif', 'tiff']:
+    for i in ['.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tif', '.tiff']:
         if i in file.filename:
             file.save('temp/attachment_img.png')
             is_img = True
+            break
     file.save('temp/attachment_file.txt') if is_img==False else None
     core.send(
         user_input    = request.form.get('content'),
@@ -194,4 +203,5 @@ def pub_debug():
 
 
 if __name__ == '__main__':
-    shell.run(debug=True)
+    get_latest_version_threading = threading.Thread(target=get_latest_version).start()
+    shell.run(debug=True, use_reloader=False)

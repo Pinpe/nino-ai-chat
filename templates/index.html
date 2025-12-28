@@ -3,7 +3,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=2.0, user-scalable=yes" /> 
         <title>欢迎使用Nino</title>
-        <link rel="icon" href="{{ url_for('static', filename='mini_logo.png') }}">
+        <link rel="icon" href="{{ url_for('static', filename='mini-logo.png') }}">
         <script src="{{ url_for('static', filename='jquery-2.0.2.min.js') }}"></script>
         
         <script>
@@ -124,7 +124,7 @@
             <span class="modal-close">X</span>
             <div class="modal-content">
                 <h2 class="modal-title">Nino🍥</h2>
-                <p class="modal-version">ver 2.3.0</p>
+                <p class="modal-version">ver {{ version }}</p>
                 <div class="modal-info">
                     <p>作者：Pinpe</p>
                     <p>技术栈：Python、Flask、jQuery</p>
@@ -176,7 +176,7 @@
                 <div class="update-info">
                     <div class="update-row">
                         <span class="update-label">当前版本</span>
-                        <span class="update-value">2.3.0</span>
+                        <span class="update-value">{{ version }}</span>
                     </div>
                     <div class="update-row">
                         <span class="update-label">最新版本</span>
@@ -292,7 +292,7 @@
         <style>
             @font-face {
                 font-family: font;
-                src: url({{ url_for('static', filename='font.ttf') }});
+                src: url({{ url_for('static', filename='font.ttf') }}); 
             }
             * {
                 font-family: font;
@@ -314,10 +314,12 @@
                 color: var(--c-text);
                 text-decoration: none;
                 transition: all 0.15s ease;
+                border-radius: 99px;
+                padding: 5px;
             }
 
             #menu a:hover{
-                background-color: #e2e2e2;
+                background-color: var(--c-card);
             }
 
             .layout-container {
@@ -327,12 +329,15 @@
 
             .left-image {
                 position: fixed;
-                top: 0;
-                left: 0;
+                top: 20px; /* 调整top值，实现悬浮感（远离顶部边缘） */
+                left: 20px; /* 调整left值，实现悬浮感（远离左侧边缘） */
                 width: 33.333%;
-                height: 100vh;
+                height: calc(100vh - 40px); /* 对应上下悬浮间距，保持整体高度协调 */
                 overflow: hidden;
                 z-index: 999;
+                border-radius: 20px; /* 圆角样式，可根据需求调整数值 */
+                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+                transition: all 0.3s ease; /* 可选：添加过渡动画，悬浮交互更顺滑 */
             }
 
             .theme-image {
@@ -341,6 +346,7 @@
                 object-fit: cover;
                 object-position: center;
                 display: block;
+                border-radius: inherit; /* 继承父元素圆角，避免图片溢出圆角容器 */
             }
 
             .right-content {
