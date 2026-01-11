@@ -1,6 +1,6 @@
 [project]
 name            = "Nino"
-version         = "2.4.0"
+version         = "2.4.1"
 description     = "Nino是一款轻量级、开源的AI聊天软件，专注于陪伴与理解用户。"
 license         = "GPL-3.0"
 authors         = ["Pinpe <813233375@qq.com>"]
